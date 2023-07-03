@@ -176,9 +176,10 @@ to GraphAr itself or GraphAr integrations in other projects, we'd be happy to ha
 
 - Join the mailing list: send an email to `graphar+subscribe@googlegroups.com <mailto:graphar+subscribe@googlegroups.com>`_.
   Share your ideas and use cases for the project.
-- Join the `GraphAr Slack`_ channel.
-- Follow our activity on `GitHub issues <https://github.com/alibaba/GraphAr/issues>`_.
-- Join our `Weekly Community Meeting`_.
+- Join the slack channel: `GraphAr Slack`_
+- Bug report and feature request on `GitHub issues <https://github.com/alibaba/GraphAr/issues>`_.
+- Community Meeting: `GraphAr Weekly Community Meeting`_.
+-
 
 Read through our `community introduction`_ to learn about our communication channels, governance, and more.
 
@@ -218,7 +219,7 @@ third-party libraries may not have the same license as GraphAr.
 
 .. _GraphAr Slack: https://join.slack.com/t/grapharworkspace/shared_invite/zt-1wh5vo828-yxs0MlXYBPBBNvjOGhL4kQ
 
-.. _Weekly Community Meeting: https://github.com/alibaba/GraphAr/wiki/GraphAr-Weekly-Community-Meeting
+.. _GraphAr Weekly Community Meeting: https://github.com/alibaba/GraphAr/wiki/GraphAr-Weekly-Community-Meeting
 
 .. _community introduction: https://github.com/alibaba/GraphAr/tree/main/docs/developers/community.rst
 

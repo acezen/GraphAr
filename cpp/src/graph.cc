@@ -344,6 +344,12 @@ bool EdgeIter::first_dst(const EdgeIter& from, IdType id) {
   }
 }
 
+IdType EdgesCollection<AdjListType::ordered_by_source>::count_src(IdType id) {
+  offset_reader_->seek(id);
+  auto array = std::static_pointer_cast<arrow::Int64Array>(offset_reader_->GetChunk().value());
+  return array->Value(1) - array->Value(0);
+}
+
 const AdjListType
     EdgesCollection<AdjListType::ordered_by_source>::adj_list_type_ =
         AdjListType::ordered_by_source;

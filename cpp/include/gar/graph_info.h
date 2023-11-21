@@ -207,7 +207,14 @@ class VertexInfo {
   /**
    * Copy constructor.
    */
-  VertexInfo(const VertexInfo& vertex_info) = default;
+  VertexInfo(const VertexInfo& vertex_info): label_(vertex_info.label_),
+                                             chunk_size_(vertex_info.chunk_size_),
+                                             version_(vertex_info.version_),
+                                             prefix_(vertex_info.prefix_),
+                                             property_groups_(vertex_info.property_groups_),
+                                             p2type_(vertex_info.p2type_),
+                                             p2primary_(vertex_info.p2primary_),
+                                             p2group_index_(vertex_info.p2group_index_) {};
 
   /**
    * Move constructor.

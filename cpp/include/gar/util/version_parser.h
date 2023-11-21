@@ -50,7 +50,7 @@ class InfoVersion {
     }
   }
   /** Copy constructor */
-  InfoVersion(const InfoVersion& other) = default;
+  InfoVersion(const InfoVersion& other) : version_(other.version_), user_define_types_(other.user_define_types_) {}
   /** Copy assignment */
   inline InfoVersion& operator=(const InfoVersion& other) = default;
 

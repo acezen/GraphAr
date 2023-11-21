@@ -46,7 +46,8 @@ size_t grin_get_out_degree(GRIN_GRAPH g, GRIN_EDGE_TYPE ep, GRIN_VERTEX v) {
   auto adj_list_type = GAR_ORDERED_BY_SOURCE;
   auto& edges = std::get<GAR_NAMESPACE::EdgesCollection<GAR_ORDERED_BY_SOURCE>>(
       _g->edges_collections[ep].at(adj_list_type));
-  return edges.count_src(v->id);
+  auto _v = static_cast<GRIN_VERTEX_T*>(v);
+  return static_cast<size_t>(edges.count_src(_v->id));
 }
 
 GRIN_ADJACENT_LIST_ITERATOR grin_get_adjacent_list_begin(

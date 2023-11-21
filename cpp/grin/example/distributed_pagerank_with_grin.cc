@@ -175,8 +175,8 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
     }
 
     // synchronize pagerank value
-    MPI_Allgatherv(next.data(), num_masters, MPI_DOUBLE, pr_curr.data(),
-                   cnt.data(), offset.data(), MPI_DOUBLE, MPI_COMM_WORLD);
+    // MPI_Allgatherv(next.data(), num_masters, MPI_DOUBLE, pr_curr.data(),
+    //                cnt.data(), offset.data(), MPI_DOUBLE, MPI_COMM_WORLD);
   }
 
   // output results

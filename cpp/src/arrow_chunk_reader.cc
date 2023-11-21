@@ -82,7 +82,7 @@ Status AdjListArrowChunkReader::seek_src(IdType id) noexcept {
     GAR_ASSIGN_OR_RAISE(
         chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                           vertex_chunk_index_));
-    chunk_table_.reset();
+    // chunk_table_.reset();
   }
 
   if (adj_list_type_ == AdjListType::unordered_by_source) {
@@ -116,7 +116,7 @@ Status AdjListArrowChunkReader::seek_dst(IdType id) noexcept {
     GAR_ASSIGN_OR_RAISE(
         chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                           vertex_chunk_index_));
-    chunk_table_.reset();
+    // chunk_table_.reset();
   }
 
   if (adj_list_type_ == AdjListType::unordered_by_dest) {
@@ -175,7 +175,7 @@ Status AdjListPropertyArrowChunkReader::seek_src(IdType id) noexcept {
     GAR_ASSIGN_OR_RAISE(
         chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                           vertex_chunk_index_));
-    chunk_table_.reset();
+    // chunk_table_.reset();
   }
 
   if (adj_list_type_ == AdjListType::unordered_by_source) {
@@ -211,7 +211,7 @@ Status AdjListPropertyArrowChunkReader::seek_dst(IdType id) noexcept {
     GAR_ASSIGN_OR_RAISE(
         chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                           vertex_chunk_index_));
-    chunk_table_.reset();
+    // chunk_table_.reset();
   }
 
   if (adj_list_type_ == AdjListType::unordered_by_dest) {

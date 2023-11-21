@@ -83,7 +83,7 @@ class VertexPropertyArrowChunkReader {
     if (chunk_index_ != pre_chunk_index) {
       // TODO(@acezen): use a cache to avoid reloading the same chunk, could use
       //  a LRU cache.
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     if (chunk_index_ >= chunk_num_) {
       return Status::IndexError("Internal vertex id ", id,
@@ -118,7 +118,7 @@ class VertexPropertyArrowChunkReader {
           vertex_info_.GetLabel(), " chunk num ", chunk_num_);
     }
     seek_id_ = chunk_index_ * vertex_info_.GetChunkSize();
-    chunk_table_.reset();
+    // chunk_table_.reset();
 
     return Status::OK();
   }
@@ -239,7 +239,7 @@ class AdjListArrowChunkReader {
     IdType pre_chunk_index = chunk_index_;
     chunk_index_ = offset / edge_info_.GetChunkSize();
     if (chunk_index_ != pre_chunk_index) {
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     if (chunk_index_ >= chunk_num_ || offset >= edge_nums_[vertex_chunk_index_]) {
       return Status::IndexError("The edge offset ", offset,
@@ -283,7 +283,7 @@ class AdjListArrowChunkReader {
                     edge_info_.GetChunkSize() != 0);
     }
     seek_offset_ = chunk_index_ * edge_info_.GetChunkSize();
-    chunk_table_.reset();
+    // chunk_table_.reset();
     return Status::OK();
   }
 
@@ -300,12 +300,12 @@ class AdjListArrowChunkReader {
       GAR_ASSIGN_OR_RAISE_ERROR(
           chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                             vertex_chunk_index_));
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     if (chunk_index_ != chunk_index) {
       chunk_index_ = chunk_index;
       seek_offset_ = chunk_index * edge_info_.GetChunkSize();
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     return Status::OK();
   }
@@ -383,7 +383,7 @@ class AdjListOffsetArrowChunkReader {
     IdType pre_chunk_index = chunk_index_;
     chunk_index_ = id / vertex_chunk_size_;
     if (chunk_index_ != pre_chunk_index) {
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     if (chunk_index_ >= vertex_chunk_num_) {
       return Status::IndexError(
@@ -414,7 +414,7 @@ class AdjListOffsetArrowChunkReader {
                                 AdjListTypeToString(adj_list_type_), ".");
     }
     seek_id_ = chunk_index_ * vertex_chunk_size_;
-    chunk_table_.reset();
+    // chunk_table_.reset();
 
     return Status::OK();
   }
@@ -523,7 +523,7 @@ class AdjListPropertyArrowChunkReader {
     seek_offset_ = offset;
     chunk_index_ = offset / edge_info_.GetChunkSize();
     if (chunk_index_ != pre_chunk_index) {
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     if (chunk_index_ >= chunk_num_) {
       return Status::IndexError("The edge offset ", offset,
@@ -565,7 +565,7 @@ class AdjListPropertyArrowChunkReader {
                                             vertex_chunk_index_));
     }
     seek_offset_ = chunk_index_ * edge_info_.GetChunkSize();
-    chunk_table_.reset();
+    // chunk_table_.reset();
     return Status::OK();
   }
 
@@ -582,12 +582,12 @@ class AdjListPropertyArrowChunkReader {
       GAR_ASSIGN_OR_RAISE_ERROR(
           chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                             vertex_chunk_index_));
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     if (chunk_index_ != chunk_index) {
       chunk_index_ = chunk_index;
       seek_offset_ = chunk_index * edge_info_.GetChunkSize();
-      chunk_table_.reset();
+      // chunk_table_.reset();
     }
     return Status::OK();
   }

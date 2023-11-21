@@ -95,7 +95,7 @@ class Edge {
    * @param adj_list_reader The reader for reading the adjList.
    * @param property_readers A set of readers for reading the edge properties.
    */
-  explicit Edge(std::shared<AdjListArrowChunkReader>& adj_list_reader,  // NOLINT
+  explicit Edge(std::shared_ptr<AdjListArrowChunkReader>& adj_list_reader,  // NOLINT
                 std::vector<AdjListPropertyArrowChunkReader>&
                     property_readers);  // NOLINT
 
@@ -362,7 +362,7 @@ class EdgeIter {
         index_converter_(index_converter) {
     auto pair = index_converter->GlobalChunkIndexToIndexPair(global_chunk_index);
     vertex_chunk_index_ = pair.first;
-    adj_list_reader_->set_chunk_index(vertex_chunk_index_, pair.second);
+    adj_list_reader_->seek_chunk_index(vertex_chunk_index_, pair.second);
   }
 
   /** Copy constructor. */

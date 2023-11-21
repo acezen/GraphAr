@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace GAR_NAMESPACE_INTERNAL {
 
+std::shared_ptr<arrow::Table> VertexPropertyArrowChunkReader::chunk_table_ = nullptr;
 Result<std::shared_ptr<arrow::Table>>
 VertexPropertyArrowChunkReader::GetChunk() noexcept {
   GAR_RETURN_NOT_OK(util::CheckFilterOptions(filter_options_, property_group_));
@@ -60,6 +61,7 @@ void VertexPropertyArrowChunkReader::Select(util::ColumnNames column_names) {
   filter_options_.columns = column_names;
 }
 
+std::shared_ptr<arrow::Table> AdjListArrowChunkReader::chunk_table_ = nullptr;
 Status AdjListArrowChunkReader::seek_src(IdType id) noexcept {
   if (adj_list_type_ != AdjListType::unordered_by_source &&
       adj_list_type_ != AdjListType::ordered_by_source) {
@@ -187,6 +189,8 @@ Status AdjListPropertyArrowChunkReader::seek_src(IdType id) noexcept {
   return Status::OK();
 }
 
+std::shared_ptr<arrow::Table> AdjListOffsetArrowChunkReader::chunk_table_ = nullptr;
+std::shared_ptr<arrow::Table> AdjListPropertyArrowChunkReader::chunk_table_ = nullptr;
 Status AdjListPropertyArrowChunkReader::seek_dst(IdType id) noexcept {
   if (adj_list_type_ != AdjListType::unordered_by_dest &&
       adj_list_type_ != AdjListType::ordered_by_dest) {

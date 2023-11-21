@@ -57,7 +57,6 @@ class VertexPropertyArrowChunkReader {
         property_group_(property_group),
         chunk_index_(chunk_index),
         seek_id_(chunk_index * vertex_info.GetChunkSize()),
-        chunk_table_(nullptr),
         filter_options_(options) {
     GAR_ASSIGN_OR_RAISE_ERROR(fs_, FileSystemFromUriOrPath(prefix, &prefix_));
     GAR_ASSIGN_OR_RAISE_ERROR(auto pg_path_prefix,
@@ -153,7 +152,7 @@ class VertexPropertyArrowChunkReader {
   IdType seek_id_;
   IdType chunk_num_;
   IdType vertex_num_;
-  std::shared_ptr<arrow::Table> chunk_table_;
+  static std::shared_ptr<arrow::Table> chunk_table_;
   util::FilterOptions filter_options_;
   std::shared_ptr<FileSystem> fs_;
 };
@@ -180,8 +179,7 @@ class AdjListArrowChunkReader {
         prefix_(prefix),
         vertex_chunk_index_(vertex_chunk_index),
         chunk_index_(0),
-        seek_offset_(0),
-        chunk_table_(nullptr) {
+        seek_offset_(0) {
     GAR_ASSIGN_OR_RAISE_ERROR(fs_, FileSystemFromUriOrPath(prefix, &prefix_));
     GAR_ASSIGN_OR_RAISE_ERROR(auto adj_list_path_prefix,
                               edge_info.GetAdjListPathPrefix(adj_list_type));
@@ -192,6 +190,12 @@ class AdjListArrowChunkReader {
     GAR_ASSIGN_OR_RAISE_ERROR(
         chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                           vertex_chunk_index_));
+    for (IdType i = 0; i < vertex_chunk_num_; ++i) {
+      GAR_ASSIGN_OR_RAISE_ERROR(
+          auto edge_num,
+          util::GetEdgeNum(prefix_, edge_info_, adj_list_type_, i));
+      edge_nums_.push_back(edge_num);
+    }
   }
 
   /**
@@ -204,7 +208,6 @@ class AdjListArrowChunkReader {
         vertex_chunk_index_(other.vertex_chunk_index_),
         chunk_index_(other.chunk_index_),
         seek_offset_(other.seek_offset_),
-        chunk_table_(nullptr),
         vertex_chunk_num_(other.vertex_chunk_num_),
         chunk_num_(other.chunk_num_),
         base_dir_(other.base_dir_),
@@ -238,7 +241,7 @@ class AdjListArrowChunkReader {
     if (chunk_index_ != pre_chunk_index) {
       chunk_table_.reset();
     }
-    if (chunk_index_ >= chunk_num_) {
+    if (chunk_index_ >= chunk_num_ || offset >= edge_nums_[vertex_chunk_index_]) {
       return Status::IndexError("The edge offset ", offset,
                                 " is out of range [0,",
                                 edge_info_.GetChunkSize() * chunk_num_,
@@ -275,9 +278,9 @@ class AdjListArrowChunkReader {
                                   vertex_chunk_num_);
       }
       chunk_index_ = 0;
-      GAR_ASSIGN_OR_RAISE_ERROR(
-          chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
-                                            vertex_chunk_index_));
+      chunk_num_ = edge_nums_[vertex_chunk_index_] / edge_info_.GetChunkSize() +
+                   (edge_nums_[vertex_chunk_index_] %
+                    edge_info_.GetChunkSize() != 0);
     }
     seek_offset_ = chunk_index_ * edge_info_.GetChunkSize();
     chunk_table_.reset();
@@ -307,16 +310,21 @@ class AdjListArrowChunkReader {
     return Status::OK();
   }
 
+  inline const std::vector<IdType>& GetEdgeNums() const noexcept {
+    return edge_nums_;
+  }
+
  private:
   EdgeInfo edge_info_;
   AdjListType adj_list_type_;
   std::string prefix_;
   IdType vertex_chunk_index_, chunk_index_;
   IdType seek_offset_;
-  std::shared_ptr<arrow::Table> chunk_table_;
+  static std::shared_ptr<arrow::Table> chunk_table_;
   IdType vertex_chunk_num_, chunk_num_;
   std::string base_dir_;
   std::shared_ptr<FileSystem> fs_;
+  std::vector<IdType> edge_nums_;
 };
 
 /**
@@ -341,8 +349,7 @@ class AdjListOffsetArrowChunkReader {
         adj_list_type_(adj_list_type),
         prefix_(prefix),
         chunk_index_(0),
-        seek_id_(0),
-        chunk_table_(nullptr) {
+        seek_id_(0) {
     GAR_ASSIGN_OR_RAISE_ERROR(fs_, FileSystemFromUriOrPath(prefix, &prefix_));
     GAR_ASSIGN_OR_RAISE_ERROR(auto dir_path,
                               edge_info.GetOffsetPathPrefix(adj_list_type));
@@ -423,7 +430,7 @@ class AdjListOffsetArrowChunkReader {
   std::string prefix_;
   IdType chunk_index_;
   IdType seek_id_;
-  std::shared_ptr<arrow::Table> chunk_table_;
+  static std::shared_ptr<arrow::Table> chunk_table_;
   IdType vertex_chunk_num_;
   IdType vertex_chunk_size_;
   std::string base_dir_;
@@ -459,7 +466,6 @@ class AdjListPropertyArrowChunkReader {
         vertex_chunk_index_(vertex_chunk_index),
         chunk_index_(0),
         seek_offset_(0),
-        chunk_table_(nullptr),
         filter_options_(options) {
     GAR_ASSIGN_OR_RAISE_ERROR(fs_, FileSystemFromUriOrPath(prefix, &prefix_));
     GAR_ASSIGN_OR_RAISE_ERROR(
@@ -485,7 +491,6 @@ class AdjListPropertyArrowChunkReader {
         vertex_chunk_index_(other.vertex_chunk_index_),
         chunk_index_(other.chunk_index_),
         seek_offset_(other.seek_offset_),
-        chunk_table_(nullptr),
         filter_options_(other.filter_options_),
         vertex_chunk_num_(other.vertex_chunk_num_),
         chunk_num_(other.chunk_num_),
@@ -610,7 +615,7 @@ class AdjListPropertyArrowChunkReader {
   std::string prefix_;
   IdType vertex_chunk_index_, chunk_index_;
   IdType seek_offset_;
-  std::shared_ptr<arrow::Table> chunk_table_;
+  static std::shared_ptr<arrow::Table> chunk_table_;
   util::FilterOptions filter_options_;
   IdType vertex_chunk_num_, chunk_num_;
   std::string base_dir_;

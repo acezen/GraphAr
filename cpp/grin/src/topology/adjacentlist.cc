@@ -40,6 +40,15 @@ GRIN_EDGE grin_get_edge_from_adjacent_list(GRIN_GRAPH, GRIN_ADJACENT_LIST,
 #endif
 
 #ifdef GRIN_ENABLE_ADJACENT_LIST_ITERATOR
+
+size_t grin_get_out_degree(GRIN_GRAPH g, GRIN_EDGE_TYPE ep, GRIN_VERTEX v) {
+  auto _g = static_cast<GRIN_GRAPH_T*>(g);
+  auto adj_list_type = GAR_ORDERED_BY_SOURCE;
+  auto& edges = std::get<GAR_NAMESPACE::EdgesCollection<GAR_ORDERED_BY_SOURCE>>(
+      _g->edges_collections[ep].at(adj_list_type));
+  return edges.count_src(v->id);
+}
+
 GRIN_ADJACENT_LIST_ITERATOR grin_get_adjacent_list_begin(
     GRIN_GRAPH g, GRIN_ADJACENT_LIST al) {
   auto _g = static_cast<GRIN_GRAPH_T*>(g);

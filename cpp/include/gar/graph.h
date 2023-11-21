@@ -677,6 +677,8 @@ class EdgesCollection<AdjListType::ordered_by_source> {
     }
     index_converter_ =
         std::make_shared<util::IndexConverter>(std::move(edge_chunk_nums));
+    offset_reader =
+        std::make_shared<AdjListOffsetArrowChunkReader>(edge_info, adj_list_type_, prefix);
   }
 
   /** The iterator pointing to the first edge. */
@@ -699,6 +701,11 @@ class EdgesCollection<AdjListType::ordered_by_source> {
     return *end_;
   }
 
+  IdType count_src(IdType id) {
+    offset_reader_->seek(id);
+    auto array = std::static_pointer_cast<arrow::Int64Array>(offset_reader_->GetChunk().value());
+    return array->Value(1) - array->Value(0);
+  }
   /**
    * Construct and return the iterator pointing to the first out-going edge of
    * the vertex with specific id after the input iterator.
@@ -778,6 +785,7 @@ class EdgesCollection<AdjListType::ordered_by_source> {
   std::shared_ptr<util::IndexConverter> index_converter_;
   std::shared_ptr<EdgeIter> begin_, end_;
   IdType edge_num_;
+  std::shared_ptr<AdjListOffsetArrowChunkReader> offset_reader_;
 };
 
 /**

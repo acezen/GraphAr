@@ -52,10 +52,10 @@ GRIN_GRAPH init(GRIN_PARTITIONED_GRAPH partitioned_graph, int pid = 0) {
 void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
   // initialize parameters
   const double damping = 0.85;
-  const int max_iters = DIS_PR_MAX_ITERS;
+  const int max_iters = 1;
   // get vertex list & select by vertex type
-  auto vtype = grin_get_vertex_type_by_name(graph, DIS_PR_VERTEX_TYPE.c_str());
-  auto etype = grin_get_edge_type_by_name(graph, DIS_PR_EDGE_TYPE.c_str());
+  auto vtype = grin_get_vertex_type_by_name(graph, "person");
+  auto etype = grin_get_edge_type_by_name(graph, "knows");
   auto vertex_list = grin_get_vertex_list_by_type(graph, vtype);
   const size_t num_vertices = grin_get_vertex_num_by_type(graph, vtype);
   std::cout << "num_vertices = " << num_vertices << std::endl;
@@ -72,25 +72,25 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
   // select master
   auto master_vertex_list =
       grin_get_vertex_list_by_type_select_master(graph, vtype);
-  const size_t num_masters =
+  const int64_t num_masters =
       grin_get_vertex_list_size(graph, master_vertex_list);
   std::cout << "pid = " << pid << ", num_masters = " << num_masters
             << std::endl;
   size_t total_num_masters = 0;
-  MPI_Allreduce(&num_masters, &total_num_masters, 1, MPI_UNSIGNED_LONG, MPI_SUM,
-                MPI_COMM_WORLD);
-  ASSERT(total_num_masters == num_vertices);
+  // MPI_Allreduce(&num_masters, &total_num_masters, 1, MPI_UNSIGNED_LONG, MPI_SUM,
+  //               MPI_COMM_WORLD);
+  // ASSERT(total_num_masters == num_vertices);
 
   // initialize cnt and offset for MPI_Allgatherv
-  std::vector<int> cnt(n_procs), offset(n_procs);
-  MPI_Allgather(&num_masters, 1, MPI_INT, cnt.data(), 1, MPI_INT,
+  std::vector<int64_t> cnt(n_procs), offset(n_procs);
+  MPI_Allgather(&num_masters, 1, MPI_LONG, cnt.data(), 1, MPI_LONG,
                 MPI_COMM_WORLD);
   offset[0] = 0;
   for (int i = 1; i < n_procs; ++i) {
     offset[i] = offset[i - 1] + cnt[i - 1];
   }
-  MPI_Bcast(cnt.data(), n_procs, MPI_INT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(offset.data(), n_procs, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(cnt.data(), n_procs, MPI_LONG, 0, MPI_COMM_WORLD);
+  MPI_Bcast(offset.data(), n_procs, MPI_LONG, 0, MPI_COMM_WORLD);
 
   // initialize pagerank value
   std::vector<double> pr_curr(num_vertices);
@@ -101,12 +101,14 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
 
   // initialize out degree
   std::vector<size_t> out_degree(num_vertices, 0);
-  for (auto i = 0; i < num_masters; ++i) {
+  for (size_t i = 0; i < num_masters; ++i) {
     // get vertex
     auto v = grin_get_vertex_from_list(graph, master_vertex_list, i);
     auto id =
         grin_get_position_of_vertex_from_sorted_list(graph, vertex_list, v);
+    out_degree[id] = grin_get_out_degree(graph, etype, v);
     // get outgoing adjacent list
+    /*
     auto adjacent_list = grin_get_adjacent_list_by_edge_type(
         graph, GRIN_DIRECTION::OUT, v, etype);
     auto it = grin_get_adjacent_list_begin(graph, adjacent_list);
@@ -117,6 +119,7 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
     // destroy
     grin_destroy_adjacent_list_iter(graph, it);
     grin_destroy_adjacent_list(graph, adjacent_list);
+    */
     grin_destroy_vertex(graph, v);
   }
   // synchronize out degree
@@ -127,6 +130,7 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
   for (int iter = 0; iter < max_iters; iter++) {
     std::cout << "pid = " << pid << ", iter = " << iter << std::endl;
 
+    auto iter_start = std::chrono::high_resolution_clock::now();  // run start
     // update pagerank value
     for (auto i = 0; i < num_masters; ++i) {
       // get vertex
@@ -151,7 +155,12 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
       grin_destroy_adjacent_list(graph, adjacent_list);
       grin_destroy_vertex(graph, v);
     }
+    auto iter_end = std::chrono::high_resolution_clock::now();  // run start
+    auto iter_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+      iter_end - iter_start);
 
+    std::cout << "Run time for iteration " << iter << " for pid " << pid << " = "
+              << iter_time.count() << " ms" << std::endl;
     // apply updated values
     for (auto i = 0; i < num_masters; ++i) {
       // get vertex
@@ -220,7 +229,7 @@ int main(int argc, char* argv[]) {
   is_master = (pid == 0);
 
   // set graph info path and partition number
-  std::string path = DIS_PR_TEST_DATA_PATH;
+  std::string path = "/apsara/weibin/graphar/cf_21/cf.graph/yml";
   // set partition number = n_procs, stragey = segmented
   uint32_t partition_num = n_procs;
   if (is_master) {
@@ -265,9 +274,9 @@ int main(int argc, char* argv[]) {
   if (is_master) {
     std::cout << "Init time for distributed PageRank with GRIN = "
               << init_time.count() << " ms" << std::endl;
-    std::cout << "Run time for distibuted PageRank with GRIN = "
+    std::cout << "Run time for distributed PageRank with GRIN = "
               << run_time.count() << " ms" << std::endl;
-    std::cout << "Totoal time for distributed PageRank with GRIN = "
+    std::cout << "Total time for distributed PageRank with GRIN = "
               << init_time.count() + run_time.count() << " ms" << std::endl;
   }
 

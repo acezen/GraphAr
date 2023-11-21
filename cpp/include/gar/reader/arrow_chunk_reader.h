@@ -190,12 +190,6 @@ class AdjListArrowChunkReader {
     GAR_ASSIGN_OR_RAISE_ERROR(
         chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
                                           vertex_chunk_index_));
-    for (IdType i = 0; i < vertex_chunk_num_; ++i) {
-      GAR_ASSIGN_OR_RAISE_ERROR(
-          auto edge_num,
-          util::GetEdgeNum(prefix_, edge_info_, adj_list_type_, i));
-      edge_nums_.push_back(edge_num);
-    }
   }
 
   /**
@@ -241,7 +235,7 @@ class AdjListArrowChunkReader {
     if (chunk_index_ != pre_chunk_index) {
       // chunk_table_.reset();
     }
-    if (chunk_index_ >= chunk_num_ || offset >= edge_nums_[vertex_chunk_index_]) {
+    if (chunk_index_ >= chunk_num_) {
       return Status::IndexError("The edge offset ", offset,
                                 " is out of range [0,",
                                 edge_info_.GetChunkSize() * chunk_num_,
@@ -278,9 +272,9 @@ class AdjListArrowChunkReader {
                                   vertex_chunk_num_);
       }
       chunk_index_ = 0;
-      chunk_num_ = edge_nums_[vertex_chunk_index_] / edge_info_.GetChunkSize() +
-                   (edge_nums_[vertex_chunk_index_] %
-                    edge_info_.GetChunkSize() != 0);
+      GAR_ASSIGN_OR_RAISE_ERROR(
+          chunk_num_, util::GetEdgeChunkNum(prefix_, edge_info_, adj_list_type_,
+                                            vertex_chunk_index_));
     }
     seek_offset_ = chunk_index_ * edge_info_.GetChunkSize();
     // chunk_table_.reset();
@@ -310,10 +304,6 @@ class AdjListArrowChunkReader {
     return Status::OK();
   }
 
-  inline const std::vector<IdType>& GetEdgeNums() const noexcept {
-    return edge_nums_;
-  }
-
  private:
   EdgeInfo edge_info_;
   AdjListType adj_list_type_;
@@ -324,7 +314,6 @@ class AdjListArrowChunkReader {
   IdType vertex_chunk_num_, chunk_num_;
   std::string base_dir_;
   std::shared_ptr<FileSystem> fs_;
-  std::vector<IdType> edge_nums_;
 };
 
 /**

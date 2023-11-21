@@ -132,35 +132,38 @@ void run_pagerank(GRIN_PARTITIONED_GRAPH graph, bool print_result = false) {
 
     auto iter_start = std::chrono::high_resolution_clock::now();  // run start
     // update pagerank value
-    for (auto i = 0; i < num_masters; ++i) {
+    // for (auto i = 0; i < num_masters; ++i) {
       // get vertex
-      auto v = grin_get_vertex_from_list(graph, master_vertex_list, i);
+    auto v = grin_get_vertex_from_list(graph, master_vertex_list, 0);
+    auto last_v = grin_get_vertex_from_list(graph, master_vertex_list, num_masters - 1);
+    auto external_id = grin_get_vertex_external_id_of_int64(graph, last_v);
       // get incoming adjacent list
-      auto adjacent_list = grin_get_adjacent_list_by_edge_type(
-          graph, GRIN_DIRECTION::IN, v, etype);
-      auto it = grin_get_adjacent_list_begin(graph, adjacent_list);
+    auto adjacent_list = grin_get_adjacent_list_by_edge_type(
+        graph, GRIN_DIRECTION::IN, v, etype);
+    auto it = grin_get_adjacent_list_begin(graph, adjacent_list);
       // update pagerank value
-      next[i] = 0;
-      while (grin_is_adjacent_list_end(graph, it) == false) {
-        // get neighbor
-        auto nbr = grin_get_neighbor_from_adjacent_list_iter(graph, it);
-        auto nbr_id = grin_get_position_of_vertex_from_sorted_list(
-            graph, vertex_list, nbr);
-        next[i] += pr_curr[nbr_id] / out_degree[nbr_id];
-        grin_destroy_vertex(graph, nbr);
-        grin_get_next_adjacent_list_iter(graph, it);
-      }
-      // destroy
-      grin_destroy_adjacent_list_iter(graph, it);
-      grin_destroy_adjacent_list(graph, adjacent_list);
-      grin_destroy_vertex(graph, v);
+    next[i] = 0;
+    while (grin_is_adjacent_list_end(graph, it, external_id) == false) {
+      // get neighbor
+      auto nbr = grin_get_neighbor_from_adjacent_list_iter(graph, it);
+      auto nbr_id = grin_get_position_of_vertex_from_sorted_list(
+          graph, vertex_list, nbr);
+      next[i] += pr_curr[nbr_id] / out_degree[nbr_id];
+      grin_destroy_vertex(graph, nbr);
+      grin_get_next_adjacent_list_iter(graph, it);
     }
+      // destroy
+    grin_destroy_adjacent_list_iter(graph, it);
+    grin_destroy_adjacent_list(graph, adjacent_list);
+    grin_destroy_vertex(graph, v);
+    grin_destroy_vertex(graph, last_v);
     auto iter_end = std::chrono::high_resolution_clock::now();  // run start
     auto iter_time = std::chrono::duration_cast<std::chrono::milliseconds>(
       iter_end - iter_start);
 
     std::cout << "Run time for iteration " << iter << " for pid " << pid << " = "
               << iter_time.count() << " ms" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
     // apply updated values
     for (auto i = 0; i < num_masters; ++i) {
       // get vertex

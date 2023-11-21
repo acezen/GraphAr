@@ -95,7 +95,7 @@ class Edge {
    * @param adj_list_reader The reader for reading the adjList.
    * @param property_readers A set of readers for reading the edge properties.
    */
-  explicit Edge(AdjListArrowChunkReader& adj_list_reader,  // NOLINT
+  explicit Edge(std::shared<AdjListArrowChunkReader>& adj_list_reader,  // NOLINT
                 std::vector<AdjListPropertyArrowChunkReader>&
                     property_readers);  // NOLINT
 
@@ -314,9 +314,9 @@ class EdgeIter {
                     IdType offset, IdType chunk_begin, IdType chunk_end,
                     std::shared_ptr<util::IndexConverter> index_converter)
       : adj_list_reader_(
-            edge_info, adj_list_type, prefix,
+            std::make_shared<AdjListArrowChunkReader>(edge_info, adj_list_type, prefix,
             index_converter->GlobalChunkIndexToIndexPair(global_chunk_index)
-                .first),
+                .first)),
         global_chunk_index_(global_chunk_index),
         cur_offset_(offset),
         chunk_size_(edge_info.GetChunkSize()),
@@ -342,6 +342,29 @@ class EdgeIter {
     }
   }
 
+  explicit EdgeIter(const EdgeInfo& edge_info, const std::string& prefix,
+                    AdjListType adj_list_type, IdType global_chunk_index,
+                    IdType offset, IdType chunk_begin, IdType chunk_end,
+                    std::shared_ptr<util::IndexConverter> index_converter,
+                    std::shared_ptr<AdjListArrowChunkReader> adj_list_reader,
+                    std::shared_ptr<AdjListOffsetArrowChunkReader> offset_reader)
+      : adj_list_reader_(adj_list_reader),
+        offset_reader_(offset_reader),
+        global_chunk_index_(global_chunk_index),
+        cur_offset_(offset),
+        chunk_size_(edge_info.GetChunkSize()),
+        src_chunk_size_(edge_info.GetSrcChunkSize()),
+        dst_chunk_size_(edge_info.GetDstChunkSize()),
+        num_row_of_chunk_(0),
+        chunk_begin_(chunk_begin),
+        chunk_end_(chunk_end),
+        adj_list_type_(adj_list_type),
+        index_converter_(index_converter) {
+    auto pair = index_converter->GlobalChunkIndexToIndexPair(global_chunk_index);
+    vertex_chunk_index_ = pair.first;
+    adj_list_reader_->set_chunk_index(vertex_chunk_index_, pair.second);
+  }
+
   /** Copy constructor. */
   EdgeIter(const EdgeIter& other)
       : adj_list_reader_(other.adj_list_reader_),
@@ -361,7 +384,7 @@ class EdgeIter {
 
   /** Construct and return the edge of the current offset. */
   Edge operator*() {
-    adj_list_reader_.seek(cur_offset_);
+    adj_list_reader_->seek(cur_offset_);
     for (auto& reader : property_readers_) {
       reader.seek(cur_offset_);
     }
@@ -398,17 +421,17 @@ class EdgeIter {
   /** The prefix increment operator. */
   EdgeIter& operator++() {
     if (num_row_of_chunk_ == 0) {
-      adj_list_reader_.seek(cur_offset_);
+      adj_list_reader_->seek(cur_offset_);
       GAR_ASSIGN_OR_RAISE_ERROR(num_row_of_chunk_,
-                                adj_list_reader_.GetRowNumOfChunk());
+                                adj_list_reader_->GetRowNumOfChunk());
     }
-    auto st = adj_list_reader_.seek(++cur_offset_);
+    auto st = adj_list_reader_->seek(++cur_offset_);
     if (st.ok() && num_row_of_chunk_ != chunk_size_) {
       // check the row offset is overflow
       auto row_offset = cur_offset_ % chunk_size_;
       if (row_offset >= num_row_of_chunk_) {
         cur_offset_ = (cur_offset_ / chunk_size_ + 1) * chunk_size_;
-        adj_list_reader_.seek(cur_offset_);
+        adj_list_reader_->seek(cur_offset_);
         st =
             Status::KeyError("The row offset is overflow, move to next chunk.");
       }
@@ -416,22 +439,22 @@ class EdgeIter {
     if (st.ok() && num_row_of_chunk_ == chunk_size_ &&
         cur_offset_ % chunk_size_ == 0) {
       GAR_ASSIGN_OR_RAISE_ERROR(num_row_of_chunk_,
-                                adj_list_reader_.GetRowNumOfChunk());
+                                adj_list_reader_->GetRowNumOfChunk());
       ++global_chunk_index_;
     }
     if (st.IsKeyError()) {
-      st = adj_list_reader_.next_chunk();
+      st = adj_list_reader_->next_chunk();
       ++global_chunk_index_;
       ++vertex_chunk_index_;
       if (!st.IsIndexError()) {
         GAR_ASSIGN_OR_RAISE_ERROR(num_row_of_chunk_,
-                                  adj_list_reader_.GetRowNumOfChunk());
+                                  adj_list_reader_->GetRowNumOfChunk());
         for (auto& reader : property_readers_) {
           reader.next_chunk();
         }
       }
       cur_offset_ = 0;
-      adj_list_reader_.seek(cur_offset_);
+      adj_list_reader_->seek(cur_offset_);
     }
     return *this;
   }
@@ -597,17 +620,17 @@ class EdgeIter {
  private:
   // Refresh the readers to point to the current position.
   void refresh() {
-    adj_list_reader_.seek_chunk_index(vertex_chunk_index_);
-    adj_list_reader_.seek(cur_offset_);
+    adj_list_reader_->seek_chunk_index(vertex_chunk_index_);
+    adj_list_reader_->seek(cur_offset_);
     for (auto& reader : property_readers_) {
       reader.seek_chunk_index(vertex_chunk_index_);
     }
     GAR_ASSIGN_OR_RAISE_ERROR(num_row_of_chunk_,
-                              adj_list_reader_.GetRowNumOfChunk());
+                              adj_list_reader_->GetRowNumOfChunk());
   }
 
  private:
-  AdjListArrowChunkReader adj_list_reader_;
+  std::shared_ptr<AdjListArrowChunkReader> adj_list_reader_;
   std::shared_ptr<AdjListOffsetArrowChunkReader> offset_reader_;
   std::vector<AdjListPropertyArrowChunkReader> property_readers_;
   IdType global_chunk_index_;
@@ -834,13 +857,17 @@ class EdgesCollection<AdjListType::ordered_by_dest> {
     }
     index_converter_ =
         std::make_shared<util::IndexConverter>(std::move(edge_chunk_nums));
+    adj_list_reader_ =
+        std::make_shared<AdjListArrowChunkReader>(edge_info, adj_list_type_, prefix);
+    offset_reader_ = std::make_shared<AdjListOffsetArrowChunkReader>(
+        edge_info, adj_list_type_, prefix);
   }
 
   /** The iterator pointing to the first edge. */
   EdgeIter begin() {
     if (begin_ == nullptr) {
       EdgeIter iter(edge_info_, prefix_, adj_list_type_, chunk_begin_, 0,
-                    chunk_begin_, chunk_end_, index_converter_);
+                    chunk_begin_, chunk_end_, index_converter_, adj_list_reader_, offset_reader_);
       begin_ = std::make_shared<EdgeIter>(iter);
     }
     return *begin_;
@@ -850,7 +877,7 @@ class EdgesCollection<AdjListType::ordered_by_dest> {
   EdgeIter end() {
     if (end_ == nullptr) {
       EdgeIter iter(edge_info_, prefix_, adj_list_type_, chunk_end_, 0,
-                    chunk_begin_, chunk_end_, index_converter_);
+                    chunk_begin_, chunk_end_, index_converter_, adj_list_reader_, offset_reader_);
       end_ = std::make_shared<EdgeIter>(iter);
     }
     return *end_;
@@ -906,20 +933,20 @@ class EdgesCollection<AdjListType::ordered_by_dest> {
     if (begin_global_chunk_index > from.global_chunk_index_) {
       return EdgeIter(edge_info_, prefix_, adj_list_type_,
                       begin_global_chunk_index, begin_offset, chunk_begin_,
-                      chunk_end_, index_converter_);
+                      chunk_end_, index_converter_, adj_list_reader_, offset_reader_);
     } else if (end_global_chunk_index < from.global_chunk_index_) {
       return this->end();
     } else {
       if (begin_offset >= from.cur_offset_) {
         return EdgeIter(edge_info_, prefix_, adj_list_type_,
                         begin_global_chunk_index, begin_offset, chunk_begin_,
-                        chunk_end_, index_converter_);
+                        chunk_end_, index_converter_, adj_list_reader_, offset_reader_);
       } else if (end_offset <= from.cur_offset_) {
         return this->end();
       } else {
         return EdgeIter(edge_info_, prefix_, adj_list_type_,
                         from.global_chunk_index_, from.cur_offset_,
-                        chunk_begin_, chunk_end_, index_converter_);
+                        chunk_begin_, chunk_end_, index_converter_, adj_list_reader_, offset_reader_);
       }
     }
     return this->end();
@@ -935,6 +962,8 @@ class EdgesCollection<AdjListType::ordered_by_dest> {
   std::shared_ptr<util::IndexConverter> index_converter_;
   std::shared_ptr<EdgeIter> begin_, end_;
   IdType edge_num_;
+  std::shared_ptr<AdjListArrowChunkReader> adj_list_reader_;
+  std::shared_ptr<AdjListOffsetArrowChunkReader> offset_reader_;
 };
 
 /**
@@ -1061,6 +1090,7 @@ class EdgesCollection<AdjListType::unordered_by_source> {
   std::shared_ptr<util::IndexConverter> index_converter_;
   std::shared_ptr<EdgeIter> begin_, end_;
   IdType edge_num_;
+  std::shared_ptr<AdjListArrowChunkReader> adj_list_reader_;
 };
 
 /**

@@ -201,6 +201,13 @@ void grin_destroy_adjacent_list_iter(GRIN_GRAPH g,
 void grin_get_next_adjacent_list_iter(GRIN_GRAPH g,
                                       GRIN_ADJACENT_LIST_ITERATOR ali) {
   auto _ali = static_cast<GRIN_ADJACENT_LIST_ITERATOR_T*>(ali);
+  ++(_ali->iter);
+  if (_ali->dir == GRIN_DIRECTION::IN)
+    _ali->vid = _ali->iter.destination();
+  else 
+    _ali->vid = _ali->iter.source();
+  return;
+  /*
   if (_ali->dir == GRIN_DIRECTION::IN) {
     if (_ali->iter.next_dst())
       return;
@@ -338,6 +345,7 @@ void grin_get_next_adjacent_list_iter(GRIN_GRAPH g,
       }
     }
   }
+  */
 }
 
 bool grin_is_adjacent_list_end(GRIN_GRAPH g, GRIN_ADJACENT_LIST_ITERATOR ali) {
@@ -345,6 +353,15 @@ bool grin_is_adjacent_list_end(GRIN_GRAPH g, GRIN_ADJACENT_LIST_ITERATOR ali) {
     return true;
   auto _ali = static_cast<GRIN_ADJACENT_LIST_ITERATOR_T*>(ali);
   if (_ali->current_etype >= _ali->etype_end || _ali->iter.is_end())
+    return true;
+  return false;
+}
+
+bool grin_is_adjacent_list_end_opt(GRIN_GRAPH g, GRIN_ADJACENT_LIST_ITERATOR ali, int64_t last) {
+  if (ali == GRIN_NULL_ADJACENT_LIST_ITERATOR)
+    return true;
+  auto _ali = static_cast<GRIN_ADJACENT_LIST_ITERATOR_T*>(ali);
+  if (_ali->vid >= last)
     return true;
   return false;
 }

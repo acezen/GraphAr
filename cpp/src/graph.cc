@@ -74,11 +74,11 @@ Vertex::Vertex(IdType id,
 }
 
 Edge::Edge(
-    AdjListArrowChunkReader& adj_list_reader,                          // NOLINT
+    std::shared_ptr<AdjListArrowChunkReader>& adj_list_reader,                          // NOLINT
     std::vector<AdjListPropertyArrowChunkReader>& property_readers) {  // NOLINT
   // get the first row of table
   GAR_ASSIGN_OR_RAISE_ERROR(auto adj_list_chunk_table,
-                            adj_list_reader.GetChunk());
+                            adj_list_reader->GetChunk());
   src_id_ = std::dynamic_pointer_cast<arrow::Int64Array>(
                 adj_list_chunk_table->column(0)->chunk(0))
                 ->GetView(0);
@@ -99,16 +99,16 @@ Edge::Edge(
 }
 
 IdType EdgeIter::source() {
-  adj_list_reader_.seek(cur_offset_);
-  GAR_ASSIGN_OR_RAISE_ERROR(auto chunk, adj_list_reader_.GetChunk());
+  adj_list_reader_->seek(cur_offset_);
+  GAR_ASSIGN_OR_RAISE_ERROR(auto chunk, adj_list_reader_->GetChunk());
   auto src_column = chunk->column(0);
   return std::dynamic_pointer_cast<arrow::Int64Array>(src_column->chunk(0))
       ->GetView(0);
 }
 
 IdType EdgeIter::destination() {
-  adj_list_reader_.seek(cur_offset_);
-  GAR_ASSIGN_OR_RAISE_ERROR(auto chunk, adj_list_reader_.GetChunk());
+  adj_list_reader_->seek(cur_offset_);
+  GAR_ASSIGN_OR_RAISE_ERROR(auto chunk, adj_list_reader_->GetChunk());
   auto src_column = chunk->column(1);
   return std::dynamic_pointer_cast<arrow::Int64Array>(src_column->chunk(0))
       ->GetView(0);

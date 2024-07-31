@@ -19,6 +19,8 @@
 
 package org.apache.graphar
 
+import org.apache.hadoop.util.VersionInfo;
+
 class GraphInfoSuite extends BaseTestSuite {
 
   test("load graph info") {
@@ -41,6 +43,13 @@ class GraphInfoSuite extends BaseTestSuite {
     edges.add("person_knows_person.edge.yml")
     assert(graph_info.getEdges == edges)
     assert(graph_info.getVersion == "gar/v1")
+  }
+
+  test("load graph info s3") {
+    // read graph yaml
+    println(VersionInfo.getVersion())
+    val yaml_path = "s3://graphar-data/ldbc.graph.yml"
+    val graph_info = GraphInfo.loadGraphInfo(yaml_path, spark)
   }
 
   test("load vertex info") {

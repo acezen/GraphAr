@@ -35,6 +35,6 @@ message Property {
 
 message PropertyGroup {
     repeated Property properties = 1;
-    FileType file_type = 2;
+    FileFormat file_format = 2;
     string prefix = 3;
 };

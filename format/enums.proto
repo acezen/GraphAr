@@ -36,7 +36,7 @@ enum DataType {
     TIME = 9;
 };
 
-enum FileType {
+enum FileFormat {
     CSV = 0;
     PARQUET = 1;
     ORC = 2;

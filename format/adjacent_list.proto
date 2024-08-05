@@ -27,17 +27,18 @@ import "enums.proto";
 
 message AdjacentList {
     AdjListType type = 1;
-    FileType file_type = 2;
+    FileFormat file_format = 2;
     string prefix = 3;
 
-    // Statistics message, including
+    // Metadata message, including
     // 1. the number of vertices base on the AdjListType
     // 2. the number of vertex chunks base on the AdjListType
     // 3. the number of edges of each vertex chunk
-    message Statistics {
+    message Metadata {
         int64 num_vertices = 1; 
         int64 num_vertex_chunks = 2;
         repeated int64 edge_nums_of_vertex_chunks = 3;
     }
-    optional Statistics statistics = 4;
+    optional Metadata metadata = 4;
+    string version = 5;
 };

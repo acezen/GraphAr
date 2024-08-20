@@ -89,6 +89,12 @@
             <version>2.0</version>
         </dependency>
         <dependency>
+            <groupId>com.aliyun.odps</groupId>
+            <artifactId>cupid-sdk</artifactId>
+            <version>3.4.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-connector-apache-spark_${scala.binary.version}</artifactId>
             <version>5.0.0_for_spark_3</version>

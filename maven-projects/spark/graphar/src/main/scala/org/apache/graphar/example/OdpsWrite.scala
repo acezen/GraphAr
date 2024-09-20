@@ -35,7 +35,6 @@ object OdpsWrite {
     edgeDf.persist(
       GeneralParams.defaultStorageLevel
     ) // cache the edge DataFrame
-    /*
     val fileSystem1 = fs.FileSystem.get(vertexPath.toUri(), spark.sparkContext.hadoopConfiguration)
     val vertexInput = fileSystem1.open(vertexPath)
     val vertexYaml = new Yaml(new Constructor(classOf[VertexInfo], new LoaderOptions()))
@@ -47,17 +46,14 @@ object OdpsWrite {
     df_and_mapping._2.persist(
       GeneralParams.defaultStorageLevel
     ) // cache the index mapping DataFrame
-    */
-    val index_mapping = IndexGenerator.constructVertexIndexMapping(vertexDf, vertexCol)
+    // val index_mapping = IndexGenerator.constructVertexIndexMapping(vertexDf, vertexCol)
     vertexDf.unpersist()
-    /*
     val df_with_index = df_and_mapping._1
     val index_mapping = df_and_mapping._2
     val vertexWriter = new VertexWriter(ossOutputPath, vertexInfo, df_with_index)
     val vertexNum = vertexWriter.getVertexNum()
     vertexWriter.writeVertexProperties()
     df_with_index.unpersist()
-    */
     
     val infoPath = new fs.Path(edgeInfoPath)
     val fileSystem2 = fs.FileSystem.get(infoPath.toUri(), spark.sparkContext.hadoopConfiguration)
@@ -70,10 +66,9 @@ object OdpsWrite {
     ) // cache the edge DataFrame with index
     edgeDf.unpersist()
     val adjListType = AdjListType.unordered_by_source
-    val writer = new EdgeWriter(ossOutputPath, edgeInfo, adjListType, 13259554849L, edgeDfWithIndex)
-    writer.writeEdges()
-    edgeDfWithIndex.unpersist()
-    index_mapping.unpersist()
+    val writer = new EdgeWriter(ossOutputPath, edgeInfo, adjListType, vertexNum, edgeDfWithIndex)
+    // val writer = new EdgeWriter(ossOutputPath, edgeInfo, adjListType, 13259554849L, edgeDfWithIndex)
+    writer.writeAdjList()
   }
 
   def main(args: Array[String]): Unit = {
